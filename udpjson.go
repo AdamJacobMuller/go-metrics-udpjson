@@ -19,6 +19,7 @@ func (t JSONTime) MarshalJSON() ([]byte, error) {
 
 type JSONCounter struct {
 	Time   JSONTime `json:"time"`
+	Server int      `json:"server_id"`
 	Type   string   `json:"type"`
 	Metric string   `json:"metric"`
 	Value  int64    `json:"value"`
@@ -26,6 +27,7 @@ type JSONCounter struct {
 
 type JSONGauge struct {
 	Time   JSONTime `json:"time"`
+	Server int      `json:"server_id"`
 	Type   string   `json:"type"`
 	Metric string   `json:"metric"`
 	Value  int64    `json:"value"`
@@ -33,6 +35,7 @@ type JSONGauge struct {
 
 type JSONGaugeFloat64 struct {
 	Time   JSONTime `json:"time"`
+	Server int      `json:"server_id"`
 	Type   string   `json:"type"`
 	Metric string   `json:"metric"`
 	Value  float64  `json:"value"`
@@ -40,6 +43,7 @@ type JSONGaugeFloat64 struct {
 
 type JSONHealthcheck struct {
 	Time   JSONTime `json:"time"`
+	Server int      `json:"server_id"`
 	Type   string   `json:"type"`
 	Metric string   `json:"metric"`
 	Error  string   `json:"string"`
@@ -47,6 +51,7 @@ type JSONHealthcheck struct {
 
 type JSONHistogram struct {
 	Time    JSONTime `json:"time"`
+	Server  int      `json:"server_id"`
 	Type    string   `json:"type"`
 	Metric  string   `json:"metric"`
 	Count   int64    `json:"count"`
@@ -63,6 +68,7 @@ type JSONHistogram struct {
 
 type JSONMeter struct {
 	Time     JSONTime `json:"time"`
+	Server   int      `json:"server_id"`
 	Type     string   `json:"type"`
 	Metric   string   `json:"metric"`
 	Count    int64    `json:"count"`
@@ -74,6 +80,7 @@ type JSONMeter struct {
 
 type JSONTimer struct {
 	Time     JSONTime `json:"time"`
+	Server   int      `json:"server_id"`
 	Type     string   `json:"type"`
 	Metric   string   `json:"metric"`
 	Count    int64    `json:"count"`
@@ -92,7 +99,7 @@ type JSONTimer struct {
 	RateMean float64  `json:"ratemean"`
 }
 
-func UDPJSON(r metrics.Registry, d time.Duration, s net.Conn) {
+func UDPJSON(r metrics.Registry, d time.Duration, s net.Conn, server_id int) {
 	for _ = range time.Tick(d) {
 		now := JSONTime(time.Now())
 		r.Each(func(name string, i interface{}) {
@@ -100,6 +107,7 @@ func UDPJSON(r metrics.Registry, d time.Duration, s net.Conn) {
 			case metrics.Counter:
 				res1D := &JSONCounter{
 					Time:   now,
+					Server: server_id,
 					Type:   "counter",
 					Metric: name,
 					Value:  metric.Count(),
@@ -109,6 +117,7 @@ func UDPJSON(r metrics.Registry, d time.Duration, s net.Conn) {
 			case metrics.Gauge:
 				res1D := &JSONGauge{
 					Time:   now,
+					Server: server_id,
 					Type:   "gauge",
 					Metric: name,
 					Value:  metric.Value(),
@@ -118,6 +127,7 @@ func UDPJSON(r metrics.Registry, d time.Duration, s net.Conn) {
 			case metrics.GaugeFloat64:
 				res1D := &JSONGaugeFloat64{
 					Time:   now,
+					Server: server_id,
 					Type:   "gauge",
 					Metric: name,
 					Value:  metric.Value(),
@@ -128,6 +138,7 @@ func UDPJSON(r metrics.Registry, d time.Duration, s net.Conn) {
 				metric.Check()
 				res1D := &JSONHealthcheck{
 					Time:   now,
+					Server: server_id,
 					Type:   "gauge",
 					Metric: name,
 					Error:  fmt.Sprintf("%v", metric.Error()),
@@ -139,6 +150,7 @@ func UDPJSON(r metrics.Registry, d time.Duration, s net.Conn) {
 				ps := h.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
 				res1D := &JSONHistogram{
 					Time:    now,
+					Server:  server_id,
 					Type:    "histogram",
 					Metric:  name,
 					Count:   h.Count(),
@@ -158,6 +170,7 @@ func UDPJSON(r metrics.Registry, d time.Duration, s net.Conn) {
 				m := metric.Snapshot()
 				res1D := &JSONMeter{
 					Time:     now,
+					Server:   server_id,
 					Type:     "meter",
 					Metric:   name,
 					Count:    m.Count(),
@@ -173,6 +186,7 @@ func UDPJSON(r metrics.Registry, d time.Duration, s net.Conn) {
 				ps := t.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
 				res1D := &JSONTimer{
 					Time:     now,
+					Server:   server_id,
 					Type:     "histogram",
 					Metric:   name,
 					Count:    t.Count(),
