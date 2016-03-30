@@ -1,5 +1,3 @@
-// +build !windows
-
 package udpjson
 
 import (
@@ -7,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/rcrowley/go-metrics"
 )
 
 type JSONTime time.Time
@@ -92,14 +92,12 @@ type JSONTimer struct {
 	RateMean float64  `json:"ratemean"`
 }
 
-// Output each metric in the given registry to syslog periodically using
-// the given syslogger.
-func UDPJSON(r Registry, d time.Duration, s net.Conn) {
+func UDPJSON(r metrics.Registry, d time.Duration, s net.Conn) {
 	for _ = range time.Tick(d) {
 		now := JSONTime(time.Now())
 		r.Each(func(name string, i interface{}) {
 			switch metric := i.(type) {
-			case Counter:
+			case metrics.Counter:
 				res1D := &JSONCounter{
 					Time:   now,
 					Type:   "counter",
@@ -108,7 +106,7 @@ func UDPJSON(r Registry, d time.Duration, s net.Conn) {
 				}
 				res1B, _ := json.Marshal(res1D)
 				s.Write(res1B)
-			case Gauge:
+			case metrics.Gauge:
 				res1D := &JSONGauge{
 					Time:   now,
 					Type:   "gauge",
@@ -117,7 +115,7 @@ func UDPJSON(r Registry, d time.Duration, s net.Conn) {
 				}
 				res1B, _ := json.Marshal(res1D)
 				s.Write(res1B)
-			case GaugeFloat64:
+			case metrics.GaugeFloat64:
 				res1D := &JSONGaugeFloat64{
 					Time:   now,
 					Type:   "gauge",
@@ -126,7 +124,7 @@ func UDPJSON(r Registry, d time.Duration, s net.Conn) {
 				}
 				res1B, _ := json.Marshal(res1D)
 				s.Write(res1B)
-			case Healthcheck:
+			case metrics.Healthcheck:
 				metric.Check()
 				res1D := &JSONHealthcheck{
 					Time:   now,
@@ -136,7 +134,7 @@ func UDPJSON(r Registry, d time.Duration, s net.Conn) {
 				}
 				res1B, _ := json.Marshal(res1D)
 				s.Write(res1B)
-			case Histogram:
+			case metrics.Histogram:
 				h := metric.Snapshot()
 				ps := h.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
 				res1D := &JSONHistogram{
@@ -156,7 +154,7 @@ func UDPJSON(r Registry, d time.Duration, s net.Conn) {
 				}
 				res1B, _ := json.Marshal(res1D)
 				s.Write(res1B)
-			case Meter:
+			case metrics.Meter:
 				m := metric.Snapshot()
 				res1D := &JSONMeter{
 					Time:     now,
@@ -170,7 +168,7 @@ func UDPJSON(r Registry, d time.Duration, s net.Conn) {
 				}
 				res1B, _ := json.Marshal(res1D)
 				s.Write(res1B)
-			case Timer:
+			case metrics.Timer:
 				t := metric.Snapshot()
 				ps := t.Percentiles([]float64{0.5, 0.75, 0.95, 0.99, 0.999})
 				res1D := &JSONTimer{
